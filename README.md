@@ -5,6 +5,8 @@
 
 ## Gambar Arsitektur
 
+![](arsitektur.PNG)
+
 ## Detail Aksitektur
 
 1. Node 1
