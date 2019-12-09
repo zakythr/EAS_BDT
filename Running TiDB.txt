@@ -1,0 +1,151 @@
+Run on PD Server
+./bin/pd-server --name=pd1 \
+                --data-dir=pd \
+                --client-urls="http://192.168.17.140:21449" \
+                --peer-urls="http://192.168.17.140:21450" \
+                --initial-cluster="pd1=http://192.168.17.140:21450" \
+                --log-file=pd.log &
+======================================================
+
+Run on Tikv Server
+./bin/tikv-server --pd="192.168.17.140:21449" \
+                  --addr="192.168.17.141:20170" \
+                  --data-dir=tikv \
+                  --log-file=tikv.log &
+
+
+./bin/tikv-server --pd="192.168.17.140:21449" \
+                  --addr="192.168.17.142:20170" \
+                  --data-dir=tikv \
+                  --log-file=tikv.log &
+
+./bin/tikv-server --pd="192.168.17.140:21449" \
+                  --addr="192.168.17.143:20170" \
+                  --data-dir=tikv \
+                  --log-file=tikv.log &
+
+======================================================
+
+Run on TiDB Server
+./bin/tidb-server --store=tikv \
+                  --path="192.168.17.144:21449" \
+                  --log-file=tidb.log &
+
+LAKUKAN URUT
+
+Run on PD Server
+//node 1
+cd tidb-v3.0-linux-amd64
+./bin/pd-server --name=pd1 --data-dir=pd --client-urls="http://192.168.17.140:21449" --peer-urls="http://192.168.17.140:21450" --initial-cluster="pd1=http://192.168.17.140:21450,pd2=http://192.168.17.141:21450,pd3=http://192.168.17.142:21450" --log-file=pd.log &
+// node 2
+cd tidb-v3.0-linux-amd64
+./bin/pd-server --name=pd2 --data-dir=pd --client-urls="http://192.168.17.141:21449" --peer-urls="http://192.168.17.141:21450" --initial-cluster="pd1=http://192.168.17.140:21450,pd2=http://192.168.17.141:21450,pd3=http://192.168.17.142:21450" --log-file=pd.log &
+// node 3
+cd tidb-v3.0-linux-amd64
+./bin/pd-server --name=pd3 --data-dir=pd --client-urls="http://192.168.17.142:21449" --peer-urls="http://192.168.17.142:21450" --initial-cluster="pd1=http://192.168.17.140:21450,pd2=http://192.168.17.141:21450,pd3=http://192.168.17.142:21450" --log-file=pd.log &
+======================================================
+
+Run on Tikv Server
+
+//node 4
+cd tidb-v3.0-linux-amd64
+./bin/tikv-server --pd="192.168.17.140:21449,192.168.17.141:21449,192.168.17.142:21449" --addr="192.168.17.143:20170" --data-dir=tikv --log-file=tikv.log &
+
+//node 5
+cd tidb-v3.0-linux-amd64
+./bin/tikv-server --pd="192.168.17.140:21449,192.168.17.141:21449,192.168.17.142:21449" --addr="192.168.17.144:20170" --data-dir=tikv --log-file=tikv.log &
+
+//node 6
+cd tidb-v3.0-linux-amd64
+./bin/tikv-server --pd="192.168.17.140:21449,192.168.17.141:21449,192.168.17.142:21449" --addr="192.168.17.145:20170" --data-dir=tikv --log-file=tikv.log &
+
+======================================================
+
+Run on TiDB Server
+//node 1 lagi
+cd tidb-v3.0-linux-amd64
+./bin/tidb-server --store=tikv --path="192.168.17.140:21449" --log-file=tidb.log &
+
+
+====================================================================================================================================================================================================================================================================================================================================
+
+untuk tidb single (untuk testing sysbench dengan 1 PD)
+
+halt node2 dan node3
+
+Run on PD Server
+
+//node 1
+cd tidb-v3.0-linux-amd64
+./bin/pd-server --name=pd1 --data-dir=pd --client-urls="http://192.168.17.140:21449" --peer-urls="http://192.168.17.140:21450" --initial-cluster="pd1=http://192.168.17.140:21450" --log-file=pd.log &
+
+======================================================
+
+Run on Tikv Server
+
+//node 4
+cd tidb-v3.0-linux-amd64
+./bin/tikv-server --pd="192.168.17.140:21449" --addr="192.168.17.143:20170" --data-dir=tikv --log-file=tikv.log &
+
+//node 5
+cd tidb-v3.0-linux-amd64
+./bin/tikv-server --pd="192.168.17.140:21449" --addr="192.168.17.144:20170" --data-dir=tikv --log-file=tikv.log &
+
+//node 6
+cd tidb-v3.0-linux-amd64
+./bin/tikv-server --pd="192.168.17.140:21449" --addr="192.168.17.145:20170" --data-dir=tikv --log-file=tikv.log &
+
+======================================================
+
+Run on TiDB Server
+
+//node 1 lagi
+cd tidb-v3.0-linux-amd64
+./bin/tidb-server --store=tikv --path="192.168.17.140:21449" --log-file=tidb.log &
+
+
+
+
+=======================================================
+
+global:
+    scrape_interval:     15s  # By default, scrape targets every 15 seconds.
+    evaluation_interval: 15s  # By default, scrape targets every 15 seconds.
+    # scrape_timeout is set to the global default value (10s).
+    external_labels:
+        cluster: 'test-cluster'
+        monitor: "prometheus"
+
+scrape_configs:
+- job_name: 'overwritten-nodes'
+    honor_labels: true  # Do not overwrite job & instance labels.
+    static_configs:
+    - targets:
+    - '192.168.17.140:9100'
+    - '192.168.17.141:9100'
+    - '192.168.17.142:9100'
+    - '192.168.17.143:9100'
+    - '192.168.17.144:9100'
+    - '192.168.17.145:9100'
+
+- job_name: 'tidb'
+    honor_labels: true  # Do not overwrite job & instance labels.
+    static_configs:
+    - targets:
+    - '192.168.17.140:10080'
+
+- job_name: 'pd'
+    honor_labels: true  # Do not overwrite job & instance labels.
+    static_configs:
+    - targets:
+    - '192.168.17.140:21449'
+    - '192.168.17.141:21449'
+    - '192.168.17.142:21449'
+
+- job_name: 'tikv'
+    honor_labels: true  # Do not overwrite job & instance labels.
+    static_configs:
+    - targets:
+    - '192.168.17.143:20180'
+    - '192.168.17.144:20180'
+    - '192.168.17.145:20180'
